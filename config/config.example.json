@@ -1,0 +1,10 @@
+{
+  "apikey": {
+    "verify_level": 0,
+    "salt1": "salt before apikey",
+    "salt2": "salt after apikey"
+  },
+  "go_cqhttp": {
+    "access_token": "token"
+  }
+}

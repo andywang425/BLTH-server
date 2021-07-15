@@ -1,0 +1,9 @@
+node_modules
+notes
+apikey/apikeys.json
+config/config.json
+cp.bat
+files/*
+!/files/README.md
+https/*
+!/https/README.md
