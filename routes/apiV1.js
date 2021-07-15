@@ -61,21 +61,6 @@ function versionStringCompare(ver1 = '0', ver2 = '0') {
   else return 0;
 }
 
-/**
- * 判断文件是否存在
- */
-function isFileExisted(file) {
-  return new Promise(function (resolve, reject) {
-    fs.access(file, (err) => {
-      if (err) {
-        console.log(warning('file: ', file, ' is not existd'));
-        reject(false);
-      } else {
-        resolve(true);
-      }
-    })
-  })
-}
 
 /**
  * 返回时间字符串
@@ -162,10 +147,6 @@ function reqBLTH() {
       setTimeout(reqBLTH, refreshTime);
     });
 };
-
-isFileExisted(getFilesPath('BLTH.js')).then(exist => {
-  if (exist) reqBLTH();
-});
 
 
 /**
