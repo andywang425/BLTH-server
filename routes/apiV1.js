@@ -2,12 +2,8 @@ var express = require('express');
 var router = express.Router();
 var axios = require('axios');
 var fs = require("fs");
-var chalk = require('chalk');
+var chalk = require('../lib/chalk');
 var getFilesPath = require('../lib/getFilesPath');
-
-const success = chalk.keyword('green');
-const warning = chalk.keyword('orange');
-const error = chalk.bold.red;
 
 const cq_access_token = process.myconfig.go_cqhttp.access_token;
 const refreshTime = 10 * 60 * 1000; // 10 min
@@ -90,12 +86,12 @@ function reqCqhttp(obj) {
   var params = keySign(obj);
   // console.log('req url:', `http://localhost:5700/${api}?${params}`);
   return axios.get(`http://localhost:5700/${api}?${params}`).then(res => {
-    console.log(timeString(), success("reqCqhttp end. "), res.data);
+    console.log(timeString(), chalk.success("reqCqhttp end. "), res.data);
     var re = res.data;
     if (re.retcode === 0) return re;
     else throw re
   }).catch(e => {
-    console.log(error('reqCqhttp ERROR: '), e.code);
+    console.log(chalk.error('reqCqhttp ERROR: '), e.code);
     throw e.code;
   })
 }
@@ -108,11 +104,11 @@ function reqCqhttp(obj) {
     {
       headers: gitrawHeaders[0]
     }).then(res => {
-      console.log(timeString(), success("notice https.get end. "));
+      console.log(timeString(), chalk.success("notice https.get end. "));
       dbJson.temp_notice = res.data;
       const filePath = getFilesPath('notice.json');
       fs.writeFile(filePath, JSON.stringify(res.data), function (err) {
-        if (err) console.log(error('write notice.json failed: '), err);
+        if (err) console.log(chalk.error('write notice.json failed: '), err);
       });
       setTimeout(reqJson, refreshTime);
       if (versionStringCompare(res.version, lastVersion) === 1) {
@@ -120,7 +116,7 @@ function reqCqhttp(obj) {
         if (!requestingScript) reqBLTH();
       }
     }).catch(e => {
-      console.log(error('ERROR: '), e.code);
+      console.log(chalk.error('ERROR: '), e.code);
       setTimeout(reqJson, refreshTime);
     });
 })();
@@ -136,14 +132,14 @@ function reqBLTH() {
     }).then(res => {
       dbJson.BLTH = res.data;
       dbJson.notice = dbJson.temp_notice;
-      console.log(timeString(), success("BLTH https.get end. "));
+      console.log(timeString(), chalk.success("BLTH https.get end. "));
       const filePath = getFilesPath('BLTH.js');
       fs.writeFile(filePath, String(res.data), function (err) {
-        if (err) console.log(error('write BLTH.js failed: '), err);
+        if (err) console.log(chalk.error('write BLTH.js failed: '), err);
       });
       requestingScript = false;
     }).catch(e => {
-      console.log(error('ERROR: '), e.code);
+      console.log(chalk.error('ERROR: '), e.code);
       setTimeout(reqBLTH, refreshTime);
     });
 };
@@ -227,7 +223,7 @@ router.get('/notice', function (req, res, next) {
   getJson().then(function (json) {
     res.send({ code: 0, data: json, msg: 'ok' });
   }).catch(function (error) {
-    console.log(error('500 error: '), error);
+    console.log(chalk.error('500 error: '), error);
     res.send({ code: 500, msg: 'Error: get notice json failed' });
   });
 });
@@ -237,7 +233,7 @@ router.get('/BLTH.user.js', function (req, res, next) {
   getBLTH().then(function (str) {
     res.send(str);
   }).catch(function (error) {
-    console.log(error('500 error: '), error);
+    console.log(chalk.error('500 chalk.error: '), chalk.error);
     res.send("Error: get BLTH script failed");
   });
 });
@@ -248,7 +244,7 @@ router.get('/anchor/getroomlist', function (req, res, next) {
   getAnchorRoomList(num).then(function (arr) {
     res.send({ code: 0, data: [...arr], msg: 'ok' });
   }).catch(function (error) {
-    console.log(error('500 error: '), error);
+    console.log(chalk.error('500 chalk.error: '), error);
     res.send({ code: 500, msg: 'get anchor roomlist failed' });
   })
 });
@@ -260,14 +256,14 @@ router.post('/anchor/updateroomlist', function (req, res, next) {
   const filePath = getFilesPath('anchor_room_list.txt');
   fs.readFile(filePath, 'utf8', function (err, data = '') {
     if (err !== null && err.errno !== -4058) {
-      console.log(error('file error'), err);
+      console.log(chalk.error('file chalk.error'), err);
       return res.send({ code: 2, msg: 'read file error' });
     } else {
       var fileArray = data.split(",");
       var finalArray = [...new Set([...roomArray, ...fileArray])].splice(0, anchor_max_room);
       fs.writeFile(filePath, String(finalArray), function (err) {
         if (err) {
-          console.log(error('write anchor_room_list.txt failed: '), err);
+          console.log(chalk.error('write anchor_room_list.txt failed: '), err);
           return res.send({ code: 2, msg: 'write file error' });
         }
         else {

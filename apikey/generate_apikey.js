@@ -18,14 +18,14 @@ process.stdin.on('readable', () => {
     const filePath = path.join(__dirname, 'apikeys.json');
     fs.readFile(filePath, 'utf8', function (err, data = '') {
       if (err || data.length === 0) {
-        return console.error('error: ', err)
+        return console.log('error: ', err)
       } else {
         var json = JSON.parse(data);
         json[uid] = apikey;
         const newData = JSON.stringify(json);
         fs.writeFile(filePath, newData, function (err) {
           if (err) {
-            console.error('Wrtie data failed: ', err);
+            console.log('Wrtie data failed: ', err);
           }
           else {
             console.log('Wrtie data success');

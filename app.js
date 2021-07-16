@@ -7,14 +7,10 @@ var path = require('path');
 var fs = require('fs');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var chalk = require('chalk');
+var chalk = require('./lib/chalk');
 var setConfig = require('./lib/setConfig');
 
-setConfig(__dirname);
-
-const success = chalk.keyword('green');
-const warning = chalk.keyword('orange');
-const error = chalk.bold.red;
+setConfig();
 
 var indexRouter = require('./routes/index');
 var apiV1Router = require('./routes/apiV1');
@@ -49,22 +45,22 @@ app.use('/api/v1/anchor', function (req, res, next) {
     // 缺少 apikey 或 uid
     /*
     if (!apikey) {
-      console.log(error("400 error: apikey required"));
+      console.log(chalk.error("400 chalk.error: apikey required"));
       return res.send({ code: 400, msg: "apikey required" });
     }*/
     if (!uid) {
-      console.log(error("400 error: uid required"));
+      console.log(chalk.error("400 chalk.error: uid required"));
       return res.send({ code: 400, msg: "uid required" });
     }
     // apikey 校验不通过
     keyCheck.verify(apikey, uid).then(function (p) {
       if (!p) {
-        console.log(error("401 error: invalid api key apikey=" + apikey + " uid=" + uid));
+        console.log(chalk.error("401 chalk.error: invalid api key apikey=" + apikey + " uid=" + uid));
         return res.send('{"code":401,"msg":"invalid api key"}');
       }
       else { next(); }
     }).catch(function (e) {
-      console.log(error("READ apikeys ERROR: "), e);
+      console.log(chalk.error("READ apikeys ERROR: "), e);
     });
   } else if (req.method === 'POST') {
     getPostData(req).then(data => {
@@ -74,25 +70,25 @@ app.use('/api/v1/anchor', function (req, res, next) {
       var uid = req.body['uid'];
       // 缺少 apikey 或 uid
       /*if (!apikey) {
-        console.log(error("400 error: apikey required"));
+        console.log(chalk.error("400 chalk.error: apikey required"));
         return res.send({ code: 400, msg: "apikey required" });
       }*/
       if (!uid) {
-        console.log(error("400 error: uid required"));
+        console.log(chalk.error("400 chalk.error: uid required"));
         return res.send({ code: 400, msg: "uid required" });
       }
       // apikey 校验不通过
       keyCheck.verify(apikey, uid).then(function (p) {
         if (!p) {
-          console.log(error("401 error: invalid api key apikey=" + apikey + " uid=" + uid));
+          console.log(chalk.error("401 chalk.error: invalid api key apikey=" + apikey + " uid=" + uid));
           return res.send('{"code":401,"msg":"invalid api key"}');
         }
         else { next(); }
       }).catch(function (e) {
-        console.log(error("READ apikeys ERROR: "), e);
+        console.log(chalk.error("READ apikeys ERROR: "), e);
       });
     }).catch(e => {
-      console.log(error('500 getPostData error: '), e);
+      console.log(chalk.error('500 getPostData error: '), e);
       res.send({ code: 500, msg: "getPostData error" })
     })
   }
@@ -152,7 +148,7 @@ function paramsToObject(entries) {
 /* istanbul ignore next */
 if (!module.parent) {
   var httpServer = http.createServer(app).listen(3000, function () {
-    console.log(success("http on 3000 port"));
+    console.log(chalk.success("http on 3000 port"));
   });
   var noHttps = false;
   try {
@@ -165,12 +161,12 @@ if (!module.parent) {
     var options = { key: privateKey, cert: certificate }
     var httpsServer = https.createServer(options, app).listen(3001, function () {
       expressWs(app, httpsServer, options);
-      console.log(success("https / wss on 3001 port"));
+      console.log(chalk.success("https / wss on 3001 port"));
     });
   } else {
-    console.log(warning('no https'));
+    console.log(chalk.warning('no https'));
     expressWs(app, httpServer, options);
-    console.log(success("ws on 3000 port"));
+    console.log(chalk.success("ws on 3000 port"));
   }
 }
 

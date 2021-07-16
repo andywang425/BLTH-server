@@ -10,11 +10,7 @@ var http = require('http');
 var https = require('https');
 var fs = require('fs');
 var expressWs = require('express-ws');
-var chalk = require('chalk');
-
-const success = chalk.keyword('green');
-const warning = chalk.keyword('orange');
-const error = chalk.bold.red;
+var chalk = require('../lib/chalk');
 
 /**
  * Get port from environment and store in Express.
@@ -28,7 +24,7 @@ app.set('port', port);
  * Create HTTP and HTTPS server.
  */
 var httpServer = http.createServer(app).listen(port, function () {
-  console.log(success(`http on ${port} port`));
+  console.log(chalk.success(`http on ${port} port`));
 });
 httpServer.on('error', onError);
 httpServer.on('listening', onListening);
@@ -43,12 +39,12 @@ if (!noHttps) {
   var options = { key: privateKey, cert: certificate }
   var httpsServer = https.createServer(options, app).listen(httpsPort, function () {
     expressWs(app, httpsServer, options);
-    console.log(success(`https / wss on ${httpsPort} port`));
+    console.log(chalk.success(`https / wss on ${httpsPort} port`));
   });
 } else {
-  console.log(warning('no https'));
+  console.log(chalk.warning('no https'));
   expressWs(app, httpServer, options);
-  console.log(success(`ws on ${port} port`));
+  console.log(chalk.success(`ws on ${port} port`));
 }
 
 /**
@@ -93,11 +89,11 @@ function onError(_error) {
   // handle specific listen errors with friendly messages
   switch (_error.code) {
     case 'EACCES':
-      console.error(error(bind + ' requires elevated privileges'));
+      console.error(chalk.error(bind + ' requires elevated privileges'));
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(error(bind + ' is already in use'));
+      console.error(chalk.error(bind + ' is already in use'));
       process.exit(1);
       break;
     default:

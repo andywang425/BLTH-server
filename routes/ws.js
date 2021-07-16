@@ -2,28 +2,22 @@ var express = require('express');
 var expressWs = require('express-ws');
 var pako = require('pako');
 var axios = require('axios');
-var chalk = require('chalk');
+var chalk = require('../lib/chalk');
 var crc32 = require('../lib/crc').crc32;
 var fs = require("fs");
 var iconv = require('iconv-lite');
 var WebSocket = require('ws');
 var axios = require('axios');
 var cmd = require('../lib/cmd');
-var path = require('path');
 var getFilesPath = require('../lib/getFilesPath');
 var setConfig = require('../lib/setConfig');
 
-setConfig(path.join(__dirname, '..'));
+setConfig();
 
 var keyCheck = require('../lib/verifyApikey');
 
 var router = express.Router();
 expressWs(router);
-
-// 彩色日志
-const success = chalk.keyword('green');
-const warning = chalk.keyword('orange');
-const error = chalk.bold.red;
 
 // 写运行信息间隔
 var writeInfoInterval = 30e3;
@@ -68,7 +62,7 @@ const cmdList = {
       hasParam: true,
       fn: function (i) {
         if (isNaN(i)) {
-          cmd.logOutput(warning('Command log :', 'interval NaN'));
+          cmd.logOutput(chalk.warning('Command log :', 'interval NaN'));
         } else {
           writeInfoInterval = Number(i);
           cmd.logOutput('writeInfoInterval is set:', writeInfoInterval);
@@ -87,7 +81,7 @@ function runExactMidnight(callback, msg) {
   t.setHours(0, 0, 0, 0);
   t.setMinutes(t.getMinutes());
   setTimeout(callback, t - Date.now());
-  console.log(`将在${t}执行任务: `, success(msg));
+  console.log(`将在${t}执行任务: `, chalk.success(msg));
 }
 
 /**
@@ -108,7 +102,7 @@ function findVal(arr, val) {
     if (!Array.isArray(arr)) return -1;
     return arr.findIndex(v => v == val); // 类型不必相同
   } catch (e) {
-    console.log(error("findVal 出错"), arr, val, e);
+    console.log(chalk.error("findVal 出错"), arr, val, e);
   }
 }
 
@@ -158,13 +152,13 @@ function handOutAnchorData() {
       // 不给上传者分发数据
       if (findVal(connectingUserInfo[uid]['uploadId'], rawData.id) > -1) {
         // console.log(`uid=${uid}的已上传天选id列表: `, connectingUserInfo[uid]['uploadId']);
-        return console.log(warning(`uid = ${uid} 是天选(id = ${rawData.id})的上传者，不分发`));
+        return console.log(chalk.warning(`uid = ${uid} 是天选(id = ${rawData.id})的上传者，不分发`));
       }
       // 不分发没价值（比如快过期）的天选
       if (!checkAnchordata(rawData)) {
-        return console.log(warning(`天选(id = ${rawData.id})无价值，不分发`));
+        return console.log(chalk.warning(`天选(id = ${rawData.id})无价值，不分发`));
       }
-      console.log(success(`分发数据(id=${rawData.id})至uid: ${uid}`));
+      console.log(chalk.success(`分发数据(id=${rawData.id})至uid: ${uid}`));
       connectingUserInfo[uid]['ws'].desend(`{"code":0,"type":"HAND_OUT_ANCHOR_DATA","data":${finalData}}`);
     });
     console.log('本轮分发结束');
@@ -208,7 +202,7 @@ function getAreaData() {
   axios.get('https://api.live.bilibili.com/room/v1/Area/getList', { headers: { myheader } }).then(response => {
     var res = response.data;
     if (res.code === 0) {
-      console.log(success("AreaData https.get end. "));
+      console.log(chalk.success("AreaData https.get end. "));
       for (var r of res.data) {
         if (IGNORE_AREA.indexOf(r.name) > -1) continue;
         area_data[r.id] = r.name;
@@ -217,7 +211,7 @@ function getAreaData() {
       }
       console.log('分区信息: ', area_data);
     } else {
-      console.log(warning(`获取b站分区信息出错: ${res.message}`))
+      console.log(chalk.warning(`获取b站分区信息出错: ${res.message}`))
     }
     // return runExactMidnight(getAreaData, '获取 b站 分区信息')
   });
@@ -227,10 +221,10 @@ function getAreaData() {
  * 打印在线信息
  */
 function printRunningInfo() {
-  console.log('当前共有 ', success(runningInfo.onlineUsersNum), ' 名用户在线，分别是 ', runningInfo.onlineUidList);
+  console.log('当前共有 ', chalk.success(runningInfo.onlineUsersNum), ' 名用户在线，分别是 ', runningInfo.onlineUidList);
   console.log('任务人数统计:', task_count);
   console.log('各页详细信息: ', area_page_info);
-  console.log('今日天选覆盖率为:', success(runningInfo.coverageStr), `, 共收集到了${anchorIdList.length}个天选`);
+  console.log('今日天选覆盖率为:', chalk.success(runningInfo.coverageStr), `, 共收集到了${anchorIdList.length}个天选`);
 }
 
 /**
@@ -249,7 +243,7 @@ function writeRunningInfo() {
     `今日天选覆盖率为: ${coverageStr}，共收集到了${anchorIdList.length}个天选`;
   var encodeStat = iconv.encode(statTxt, 'gbk');
   fs.writeFile(statPath, encodeStat, function (err) {
-    if (err) console.log(error('write stat.txt failed: '), err);
+    if (err) console.log(chalk.error('write stat.txt failed: '), err);
   });
   runningInfo = {
     onlineUidList: onlineUidList,
@@ -283,7 +277,7 @@ router.ws('/', function (ws, req) {
     try {
       ws.send(deflate(arg[0]));
     } catch (e) {
-      console.log(error('desend failed:'));
+      console.log(chalk.error('desend failed:'));
     }
   }
   /** 用户信息 */
@@ -310,7 +304,7 @@ router.ws('/', function (ws, req) {
       try {
         ws.send('pong');
       } catch (e) {
-        console.log(error('send failed:'));
+        console.log(chalk.error('send failed:'));
       }
       heartBeat = hbTimeout()
     } else {
@@ -319,7 +313,7 @@ router.ws('/', function (ws, req) {
         json = JSON.parse(inflate(new Uint8Array(msg)));
         if (!json.code) throw "数据格式有误";
       } catch (e) {
-        console.log(error("error: ", e));
+        console.log(chalk.error("chalk.error: ", e));
         return ws.close(1003, `{"code":2,"type":"ERR_NOT_JSON","data":"提交的数据格式有误，断开连接"}`);
       }
       switch (json.code) {
@@ -329,7 +323,7 @@ router.ws('/', function (ws, req) {
             if (!p) return ws.close(1000, `{"code":4,"type":"ERR_VERIFY_APIKEY","data":"apikey校验失败，断开连接"}`);
             else {
               // 校验成功
-              console.log(success(`用户uid=${json.uid} apikey=${json.apikey || "无"} 已上线`));
+              console.log(chalk.success(`用户uid=${json.uid} apikey=${json.apikey || "无"} 已上线`));
               clearTimeout(verifyTimeout);
               // 设置个人信息
               connectingUserInfo[json.uid] = {};
@@ -364,7 +358,7 @@ router.ws('/', function (ws, req) {
           if (!verfifyAnchordata(json.data)) return ws.close(1007, `{"code":-2,"type":"ERR_UPDATE_ANCHOR_DATA","data":"天选数据格式错误，断开连接"}`);
           // 成功上传回复
           ws.desend(`{"code":0,"type":"RES_UPDATE_ANCHOR_DATA","data":{"id":${json.data.id}}}`);
-          console.log(success(`成功上传天选数据(uid = ${userInfo.uid}) id = `), json.data.id);
+          console.log(chalk.success(`成功上传天选数据(uid = ${userInfo.uid}) id = `), json.data.id);
           // 添加到该用户上传过的 id 列表中
           if (findVal(userInfo.uploadId, json.data.id) === -1) {
             userInfo.uploadId.push(json.data.id);
@@ -372,14 +366,14 @@ router.ws('/', function (ws, req) {
             if (userInfo.uploadId.length > 200) userInfo.uploadId.splice(0, 100);
             connectingUserInfo[userInfo.uid]['uploadId'] = [...userInfo.uploadId];
           } else {
-            console.log(warning(`用户(uid = ${userInfo.uid})已上传过该天选(id = ${json.data.id})`));
+            console.log(chalk.warning(`用户(uid = ${userInfo.uid})已上传过该天选(id = ${json.data.id})`));
           }
           // 若没有该数据则添加至天选时刻数据列表
           if (findVal(anchorIdList, json.data.id) === -1) {
             anchorIdList.push(json.data.id);
             anchorDataList.unshift(json.data);
           } else {
-            console.log(warning(`当前上传者(uid = ${userInfo.uid}): 天选(id = ${json.data.id})已经被上传过了`));
+            console.log(chalk.warning(`当前上传者(uid = ${userInfo.uid}): 天选(id = ${json.data.id})已经被上传过了`));
           }
           break;
         }
@@ -405,7 +399,7 @@ router.ws('/', function (ws, req) {
     }
     else if (userInfo.task) task_count[userInfo.task]--;
     if (userInfo.uid && userInfo.task) console.log(`用户uid = ${userInfo.uid} apikey = ${userInfo.apikey || "无"} 已下线`);
-    else console.log(warning(`未通过验证的用户(${req.socket.remoteFamily} ${req.socket.remoteAddress} : ${req.socket.remotePort} )已下线`));
+    else console.log(chalk.warning(`未通过验证的用户(${req.socket.remoteFamily} ${req.socket.remoteAddress} : ${req.socket.remotePort} )已下线`));
   });
 
   // 出错
@@ -488,7 +482,7 @@ function cqWebsocket() {
   const cq_access_token = process.myconfig.go_cqhttp.access_token;
   var ws = new WebSocket(`ws://localhost:6700?access_token=${cq_access_token}`);
   ws.on('open', function open() {
-    console.log(success('go-cqws 连接成功'));
+    console.log(chalk.success('go-cqws 连接成功'));
   });
   ws.on('message', function incoming(data) {
     // console.log('go-cqws 收到消息', data);
@@ -502,14 +496,14 @@ function cqWebsocket() {
       axios.get(`http://localhost:5700/set_friend_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
         var data = response.data;
         console.log('同意好友请求 response data', data);
-      }).catch(e => console.log(error('error'), e));
+      }).catch(e => console.log(chalk.error('error'), e));
     }
   });
   ws.on('close', function () {
-    console.log(warning('cqws closed'))
+    console.log(chalk.warning('cqws closed'))
   })
   ws.on('error', function (e) {
-    console.log(error('cqws error'));
+    console.log(chalk.error('cqws error'));
     ws.close();
   })
 }
