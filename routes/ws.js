@@ -10,9 +10,6 @@ var WebSocket = require('ws');
 var axios = require('axios');
 var cmd = require('../lib/cmd');
 var getFilesPath = require('../lib/getFilesPath');
-var setConfig = require('../lib/setConfig');
-
-setConfig();
 
 var keyCheck = require('../lib/verifyApikey');
 
