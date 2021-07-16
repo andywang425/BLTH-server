@@ -151,14 +151,20 @@ if (!module.parent) {
     console.log(chalk.success("http on 3000 port"));
   });
   var noHttps = false;
+  var options = {};
   try {
-    var certificate = fs.readFileSync('./https/1_andywang.top_bundle.crt');
-    var privateKey = fs.readFileSync('./https/2_andywang.top.key');
+    var targetExt = ['.crt', '.key'];
+    fs.readdirSync('./https').forEach(function (file) {
+      const ext = path.extname(file);
+      if (!targetExt.includes(ext)) return;
+      const extName = ext.slice(1);
+      options[extName] = fs.readFileSync('./https/'+ file);
+    });
+    if (!options.key || !options.crt) throw 'noHttps';
   } catch (e) {
     noHttps = true;
   }
   if (!noHttps) {
-    var options = { key: privateKey, cert: certificate }
     var httpsServer = https.createServer(options, app).listen(3001, function () {
       expressWs(app, httpsServer, options);
       console.log(chalk.success("https / wss on 3001 port"));
