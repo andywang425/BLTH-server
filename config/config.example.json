@@ -6,5 +6,7 @@
   },
   "go_cqhttp": {
     "access_token": "token"
-  }
+  },
+  "super_key": "super",
+  "admin_key": "admin"
 }

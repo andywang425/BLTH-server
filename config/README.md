@@ -18,6 +18,8 @@
   "go_cqhttp": {
     // go-cqhttp 鉴权时用的 token
     "access_token": "token"
-  }
+  },
+  "super_key": "super_key", // 超级密钥
+  "admin_key": "admin_key" // 管理员密钥
 }
 ```

@@ -288,6 +288,26 @@ router.get('/qq/send_private_msg', function (req, res, next) {
   }
   reqCqhttp(reqObj).then(re => res.send({ code: 0, data: re, msg: 'success' }))
     .catch(e => res.send({ code: 2, data: e, msg: 'req go-cqhttp failed' }));
+});
+
+router.get('/qq/send_group_msg', function(req, res, next) {
+  if (!req.query['group_id'] || !req.query['message']|| !req.query['super_key']) return res.send({ code: 1, msg: 'group_id or message required' });
+  var user_id = Number(req.query['group_id']);
+  var message = req.query['message'];
+  var super_key = req.query['super_key'];
+  if (process.myconfig.super_key !== super_key) {
+    console.log(chalk.error('invalid super_key: super_key'))
+    return res.send({ code: 2, msg: 'invalid super_key' });
+  }
+  var auto_escape = true;
+  var reqObj = {
+    api: 'send_group_msg',
+    user_id: user_id,
+    message: message,
+    auto_escape: auto_escape
+  };
+  reqCqhttp(reqObj).then(re => res.send({ code: 0, data: re, msg: 'success' }))
+  .catch(e => res.send({ code: 2, data: e, msg: 'req go-cqhttp failed' }));
 })
 
 module.exports = router;
