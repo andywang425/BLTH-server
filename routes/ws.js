@@ -477,6 +477,8 @@ router.ws('/', function (ws, req) {
  */
 function cqWebsocket() {
   const cq_access_token = process.myconfig.go_cqhttp.access_token;
+  // 接收到这些qq号的入群邀请就同意
+  const invite_white_list = [717871828, 2111097182, 312465734];
   var ws = new WebSocket(`ws://localhost:6700?access_token=${cq_access_token}`);
   ws.on('open', function open() {
     console.log(chalk.success('go-cqws 连接成功'));
@@ -487,13 +489,25 @@ function cqWebsocket() {
     try {
       json = JSON.parse(data);
     } catch (e) { return; }
-    if (json.request_type === 'friend') {
-      var flag = json.flag;
-      console.log('同意好友请求 flag =', flag);
-      axios.get(`http://localhost:5700/set_friend_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
-        var data = response.data;
-        console.log('同意好友请求 response data', data);
-      }).catch(e => console.log(chalk.error('error'), e));
+    var flag = json.flag;
+    switch (json.request_type) {
+      case 'friend': {
+        console.log('同意好友请求');
+        axios.get(`http://localhost:5700/set_friend_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
+          console.log('同意好友请求 response data', response.data);
+        }).catch(e => console.log(chalk.error('error'), e));
+        break;
+      }
+      case 'group': {
+        if (json.sub_type === 'invite') {
+          if (invite_white_list.findVal(json.user_id) === -1) return;
+          console.log('同意入群邀请');
+          axios.get(`http://localhost:5700/set_group_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
+            console.log('同意入群邀请 response data', response.data);
+          }).catch(e => console.log(chalk.error('error'), e));
+          break;
+        }
+      }
     }
   });
   ws.on('close', function () {
