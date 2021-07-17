@@ -5,7 +5,8 @@
     "salt2": "salt after apikey"
   },
   "go_cqhttp": {
-    "access_token": "token"
+    "access_token": "token",
+    "invite_white_list": [10001]
   },
   "super_key": "super",
   "admin_key": "admin"

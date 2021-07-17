@@ -478,7 +478,7 @@ router.ws('/', function (ws, req) {
 function cqWebsocket() {
   const cq_access_token = process.myconfig.go_cqhttp.access_token;
   // 接收到这些qq号的入群邀请就同意
-  const invite_white_list = [717871828, 2111097182, 312465734];
+  const invite_white_list = process.myconfig.go_cqhttp.invite_white_list;
   var ws = new WebSocket(`ws://localhost:6700?access_token=${cq_access_token}`);
   ws.on('open', function open() {
     console.log(chalk.success('go-cqws 连接成功'));

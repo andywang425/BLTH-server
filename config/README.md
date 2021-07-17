@@ -17,7 +17,9 @@
   },
   "go_cqhttp": {
     // go-cqhttp 鉴权时用的 token
-    "access_token": "token"
+    "access_token": "token",
+    // 能够邀请机器人入群的qq号列表
+    "invite_white_list": [10001]
   },
   "super_key": "super_key", // 超级密钥
   "admin_key": "admin_key" // 管理员密钥
