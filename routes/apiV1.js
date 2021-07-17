@@ -292,7 +292,7 @@ router.get('/qq/send_private_msg', function (req, res, next) {
 
 router.get('/qq/send_group_msg', function(req, res, next) {
   if (!req.query['group_id'] || !req.query['message']|| !req.query['super_key']) return res.send({ code: 1, msg: 'group_id or message required' });
-  var user_id = Number(req.query['group_id']);
+  var group_id = Number(req.query['group_id']);
   var message = req.query['message'];
   var super_key = req.query['super_key'];
   if (process.myconfig.super_key !== super_key) {
@@ -302,7 +302,7 @@ router.get('/qq/send_group_msg', function(req, res, next) {
   var auto_escape = true;
   var reqObj = {
     api: 'send_group_msg',
-    user_id: user_id,
+    group_id: group_id,
     message: message,
     auto_escape: auto_escape
   };
