@@ -500,7 +500,7 @@ function cqWebsocket() {
       }
       case 'group': {
         if (json.sub_type === 'invite') {
-          if (invite_white_list.findVal(json.user_id) === -1) return;
+          if (findVal(invite_white_list, json.user_id) === -1) return;
           console.log('同意入群邀请');
           axios.get(`http://localhost:5700/set_group_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
             console.log('同意入群邀请 response data', response.data);
