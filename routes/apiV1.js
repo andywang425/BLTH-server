@@ -100,7 +100,7 @@ function reqCqhttp(obj) {
  * 从github请求notice.json（自执行）
  */
 (function reqJson() {
-  axios.get("https://ghproxy.com/raw.githubusercontent.com/andywang425/BLTH/master/assets/json/notice.min.json",
+  axios.get("https://cdn.jsdelivr.net/gh/andywang425/BLTH@master/assets/json/notice.min.json",
     {
       headers: gitrawHeaders[0]
     }).then(res => {
@@ -121,7 +121,7 @@ function reqCqhttp(obj) {
  */
 function reqBLTH() {
   requestingScript = true;
-  axios.get("https://ghproxy.com/raw.githubusercontent.com/andywang425/BLTH/master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js",
+  axios.get("https://cdn.jsdelivr.net/gh/andywang425/BLTH@master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js",
     {
       headers: gitrawHeaders[1]
     }).then(res => {
