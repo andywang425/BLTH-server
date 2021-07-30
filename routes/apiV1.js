@@ -36,9 +36,42 @@ var gitrawHeaders = [{
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
   'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
   'Accept-Encoding': 'gzip, deflate, br',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-User': '?1',
+  'Sec-Fetch-Dest': 'document',
   'Connection': 'keep-alive',
   'Upgrade-Insecure-Requests': 1
 }];
+var fastgitHeaders = [
+  {
+    'accept': 'text,json',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+    //'cookie': '_ga=GA1.2.719250297.1604205799',
+    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36'
+  }, {
+    'accept': 'text',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+    //'cookie': '_ga=GA1.2.719250297.1604205799',
+    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:87.0) Gecko/20100101 Firefox/87.0'
+  }
+]
 var lastVersion = "0";
 var requestingScript = false;
 
@@ -97,33 +130,34 @@ function reqCqhttp(obj) {
 }
 
 /**
- * 从github请求notice.json（自执行）
+ * 从fastgit请求notice.json（自执行）
  */
 (function reqJson() {
-  axios.get("https://raw.githubusercontent.com/andywang425/BLTH/master/assets/json/notice.min.json",
+  axios.get("https://raw.fastgit.org/andywang425/BLTH/master/assets/json/notice.min.json",
     {
-      headers: gitrawHeaders[0]
+      headers: fastgitHeaders[0]
     }).then(res => {
       console.log(timeString(), chalk.success("notice https.get end. "));
       setTimeout(reqJson, refreshTime);
-      if (versionStringCompare(res.version, lastVersion) === 1) {
-        lastVersion = version;
+      if (versionStringCompare(res.data.version, lastVersion) === 1) {
+        lastVersion = res.data.version;
+        dbJson.temp_notice = res.data;
         if (!requestingScript) reqBLTH();
       }
     }).catch(e => {
-      console.log(chalk.error('ERROR: '), e.code);
+      console.log(chalk.error('ERROR: '), e);
       setTimeout(reqJson, refreshTime);
     });
 })();
 
 /**
- * 从github请求 B站直播间挂机助手.js（ reqJson成功后若有新版本则执行 ）
+ * 从fastgit请求 B站直播间挂机助手.js（ reqJson成功后若有新版本则执行 ）
  */
 function reqBLTH() {
   requestingScript = true;
-  axios.get("https://raw.githubusercontent.com/andywang425/BLTH/master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js",
+  axios.get("https://raw.fastgit.org/andywang425/BLTH/master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js",
     {
-      headers: gitrawHeaders[1]
+      headers: fastgitHeaders[1]
     }).then(res => {
       dbJson.BLTH = res.data;
       dbJson.notice = dbJson.temp_notice;
@@ -287,8 +321,8 @@ router.get('/qq/send_private_msg', function (req, res, next) {
     .catch(e => res.send({ code: 2, data: e, msg: 'req go-cqhttp failed' }));
 });
 
-router.get('/qq/send_group_msg', function(req, res, next) {
-  if (!req.query['group_id'] || !req.query['message']|| !req.query['super_key']) return res.send({ code: 1, msg: 'group_id or message required' });
+router.get('/qq/send_group_msg', function (req, res, next) {
+  if (!req.query['group_id'] || !req.query['message'] || !req.query['super_key']) return res.send({ code: 1, msg: 'group_id or message required' });
   var group_id = Number(req.query['group_id']);
   var message = req.query['message'];
   var super_key = req.query['super_key'];
@@ -304,7 +338,7 @@ router.get('/qq/send_group_msg', function(req, res, next) {
     auto_escape: auto_escape
   };
   reqCqhttp(reqObj).then(re => res.send({ code: 0, data: re, msg: 'success' }))
-  .catch(e => res.send({ code: 2, data: e, msg: 'req go-cqhttp failed' }));
+    .catch(e => res.send({ code: 2, data: e, msg: 'req go-cqhttp failed' }));
 })
 
 module.exports = router;
