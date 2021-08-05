@@ -14,7 +14,8 @@ process.stdin.on('readable', () => {
   if (chunk !== null) {
     uid = String(chunk).replace('\n', '').replace('\r', '');
     var apikey = crypto.createHash('md5').update(salt1 + uid + salt2).digest("hex");
-    console.log("apikey: " + apikey);
+    console.log("that's♂good\nhere is the key:", apikey);
+    console.log('-------------------')
     const filePath = path.join(__dirname, 'apikeys.json');
     fs.readFile(filePath, 'utf8', function (err, data = '') {
       if (err || data.length === 0) {
