@@ -20,8 +20,8 @@ expressWs(router);
 var writeInfoInterval = 30e3;
 // 忽略的分区
 const IGNORE_AREA = ['大事件', '学习', '生活'];
-// 最大轮询分区用户数量
-const POLLING_AREA_MAX_USERS = 4;
+// 最大轮询每个分区的用户数量
+const POLLING_AREA_MAX_USERS = 8;
 // 最大轮询分区每一页的用户数量
 const AREA_PAGE_MAX_USERS = 1;
 // 最大各分区检查房间数量
