@@ -46,7 +46,6 @@ var fastgitHeaders = [
   }
 ]
 var lastVersion = "0";
-var requestingScript = false;
 
 /**
  * 比较版本号大小
@@ -115,7 +114,7 @@ function reqCqhttp(obj) {
       if (versionStringCompare(res.data.version, lastVersion) === 1) {
         lastVersion = res.data.version;
         dbJson.temp_notice = res.data;
-        if (!requestingScript) reqBLTH();
+        reqBLTH();
       }
     }).catch(e => {
       console.log(chalk.error('ERROR: '), e);
@@ -127,7 +126,6 @@ function reqCqhttp(obj) {
  * 从fastgit请求 B站直播间挂机助手.js（ reqJson成功后若有新版本则执行 ）
  */
 function reqBLTH() {
-  requestingScript = true;
   axios.get("https://raw.fastgit.org/andywang425/BLTH/master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js",
     {
       headers: fastgitHeaders[1]
@@ -141,7 +139,6 @@ function reqBLTH() {
       fs.writeFile(getFilesPath('notice.json'), JSON.stringify(dbJson.notice), function (err) {
         if (err) console.log(chalk.error('write notice.json failed: '), err);
       });
-      requestingScript = false;
     }).catch(e => {
       console.log(chalk.error('ERROR: '), e.code);
       setTimeout(reqBLTH, refreshTime);
