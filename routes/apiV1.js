@@ -6,7 +6,7 @@ var chalk = require('../lib/chalk');
 var getFilesPath = require('../lib/getFilesPath');
 
 const cq_access_token = process.myconfig.go_cqhttp.access_token;
-const refreshTime = 10 * 60 * 1000; // 10 min
+const refreshTime = 60 * 60 * 1000; // 60 min
 const anchor_max_room = 50;
 var dbJson = {
   temp_notice: null,
@@ -16,35 +16,6 @@ var dbJson = {
     roomList: null
   }
 };
-var fastgitHeaders = [
-  {
-    'accept': 'text,json',
-    'accept-encoding': 'gzip, deflate, br',
-    'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
-    //'cookie': '_ga=GA1.2.719250297.1604205799',
-    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'none',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36'
-  }, {
-    'accept': 'text',
-    'accept-encoding': 'gzip, deflate, br',
-    'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
-    //'cookie': '_ga=GA1.2.719250297.1604205799',
-    'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="91", "Chromium";v="91"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'none',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:87.0) Gecko/20100101 Firefox/87.0'
-  }
-]
 var lastVersion = "0";
 
 /**
@@ -102,13 +73,10 @@ function reqCqhttp(obj) {
 }
 
 /**
- * 从fastgit请求notice.json（自执行）
+ * 从jsdelivr请求notice.json（自执行）
  */
 (function reqJson() {
-  axios.get("https://raw.fastgit.org/andywang425/BLTH/master/assets/json/notice.min.json",
-    {
-      headers: fastgitHeaders[0]
-    }).then(res => {
+  axios.get("https://cdn.jsdelivr.net/gh/andywang425/BLTH@master/assets/json/notice.min.json").then(res => {
       console.log(timeString(), chalk.success("notice https.get end. "));
       setTimeout(reqJson, refreshTime);
       if (versionStringCompare(res.data.version, lastVersion) === 1) {
@@ -123,13 +91,10 @@ function reqCqhttp(obj) {
 })();
 
 /**
- * 从fastgit请求 B站直播间挂机助手.js（ reqJson成功后若有新版本则执行 ）
+ * 从jsdelivr请求 B站直播间挂机助手.js（ reqJson成功后若有新版本则执行 ）
  */
 function reqBLTH() {
-  axios.get("https://raw.fastgit.org/andywang425/BLTH/master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js",
-    {
-      headers: fastgitHeaders[1]
-    }).then(res => {
+  axios.get("https://cdn.jsdelivr.net/gh/andywang425/BLTH@master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js").then(res => {
       dbJson.BLTH = res.data;
       dbJson.notice = dbJson.temp_notice;
       console.log(timeString(), chalk.success("BLTH https.get end. "));
