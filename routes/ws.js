@@ -143,8 +143,8 @@ function handOutAnchorData() {
     if (sendList.length === 0) return;
     const rawData = anchorDataList.splice(0, 1)[0];
     const finalData = JSON.stringify(rawData);
-    console.log('准备分发天选数据: ', finalData);
-    console.log('准备分发至uid列表: ', sendList);
+    //console.log('准备分发天选数据: ', finalData);
+    //console.log('准备分发至uid列表: ', sendList);
     sendList.forEach(function (uid) {
       // 不给上传者分发数据
       if (findVal(connectingUserInfo[uid]['uploadId'], rawData.id) > -1) {
@@ -155,7 +155,7 @@ function handOutAnchorData() {
       if (!checkAnchordata(rawData)) {
         return console.log(chalk.warning(`天选(id = ${rawData.id})无价值，不分发`));
       }
-      console.log(chalk.success(`分发数据(id=${rawData.id})至uid: ${uid}`));
+      //console.log(chalk.success(`分发数据(id=${rawData.id})至uid: ${uid}`));
       connectingUserInfo[uid]['ws'].desend(`{"code":0,"type":"HAND_OUT_ANCHOR_DATA","data":${finalData}}`);
     });
     console.log('本轮分发结束');
@@ -479,6 +479,14 @@ function cqWebsocket() {
   const cq_access_token = process.myconfig.go_cqhttp.access_token;
   // 接收到这些qq号的入群邀请就同意
   const invite_white_list = process.myconfig.go_cqhttp.invite_white_list;
+  const todayAddFriendMax = 20;
+  var todayAddFriend = 0;
+  (function resetTodayFriendNum() {
+    var nextMidnight = new Date();
+    nextMidnight.setHours(24, 0, 0, 0);
+    var interval = new Date().getTime() - nextMidnight.getTime();
+    setTimeout(function () { todayAddFriend = 0; resetTodayFriendNum(); }, interval);
+  }());
   var ws = new WebSocket(`ws://localhost:6700?access_token=${cq_access_token}`);
   ws.on('open', function open() {
     console.log(chalk.success('go-cqws 连接成功'));
@@ -492,7 +500,8 @@ function cqWebsocket() {
     var flag = json.flag;
     switch (json.request_type) {
       case 'friend': {
-        console.log('同意好友请求');
+        if (json.comment !== 'BLTH') return console.log(chalk.warning('go-cqws 收到好友请求，但是验证消息不是BLTH'));
+        if (todayAddFriend > todayAddFriendMax) return console.log(chalk.wwarning('今日添加好友数量过多，不再添加'));
         axios.get(`http://localhost:5700/set_friend_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
           console.log('同意好友请求 response data', response.data);
         }).catch(e => console.log(chalk.error('error'), e));
@@ -501,7 +510,6 @@ function cqWebsocket() {
       case 'group': {
         if (json.sub_type === 'invite') {
           if (findVal(invite_white_list, json.user_id) === -1) return;
-          console.log('同意入群邀请');
           axios.get(`http://localhost:5700/set_group_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
             console.log('同意入群邀请 response data', response.data);
           }).catch(e => console.log(chalk.error('error'), e));
