@@ -401,7 +401,7 @@ router.ws('/', function (ws, req) {
 
   // 出错
   ws.on('error', function (ws, e) {
-    ws.close(1000, "no reason (awpush)");
+    console.log(chalk.error(`webSocket出错：`, e));
   });
 
 
