@@ -24,7 +24,8 @@ app.set('port', port);
  * Create HTTP and HTTPS server.
  */
 var httpServer = http.createServer(app).listen(port, function () {
-  console.log(chalk.success(`http on ${port} port`));
+  expressWs(app, httpServer, options);
+  console.log(chalk.success(`http / ws on ${port} port`));
 });
 httpServer.on('error', onError);
 httpServer.on('listening', onListening);
@@ -43,8 +44,6 @@ if (!noHttps) {
   });
 } else {
   console.log(chalk.warning('no https'));
-  expressWs(app, httpServer, options);
-  console.log(chalk.success(`ws on ${port} port`));
 }
 
 /**

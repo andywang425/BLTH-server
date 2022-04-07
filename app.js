@@ -148,8 +148,10 @@ function paramsToObject(entries) {
 /* istanbul ignore next */
 if (!module.parent) {
   var httpServer = http.createServer(app).listen(3000, function () {
-    console.log(chalk.success("http on 3000 port"));
+    expressWs(app, httpServer, options);
+    console.log(chalk.success("http / ws on 3000 port"));
   });
+
   var noHttps = false;
   var options = {};
   try {
@@ -158,7 +160,7 @@ if (!module.parent) {
       const ext = path.extname(file);
       if (!targetExt.includes(ext)) return;
       const extName = ext.slice(1);
-      options[extName] = fs.readFileSync('./https/'+ file);
+      options[extName] = fs.readFileSync('./https/' + file);
     });
     if (!options.key || !options.crt) throw 'noHttps';
   } catch (e) {
@@ -171,8 +173,6 @@ if (!module.parent) {
     });
   } else {
     console.log(chalk.warning('no https'));
-    expressWs(app, httpServer, options);
-    console.log(chalk.success("ws on 3000 port"));
   }
 }
 

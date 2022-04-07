@@ -7,7 +7,6 @@ var crc32 = require('../lib/crc').crc32;
 var fs = require("fs");
 var iconv = require('iconv-lite');
 var WebSocket = require('ws');
-var axios = require('axios');
 var cmd = require('../lib/cmd');
 var getFilesPath = require('../lib/getFilesPath');
 
@@ -16,6 +15,8 @@ var keyCheck = require('../lib/verifyApikey');
 var router = express.Router();
 expressWs(router);
 
+// 写运行信息
+var writeRunningInfoTimer;
 // 写运行信息间隔
 var writeInfoInterval = 30e3;
 // 忽略的分区
@@ -43,7 +44,6 @@ var myheader = {
   'Sec-Fetch-Site': 'same-site',
   'Sec-Fetch-Mode': 'cors',
   'Sec-Fetch-Dest': 'empty',
-  'Referer': 'https://live.bilibili.com/',
   'Accept-Encoding': 'gzip, deflate, br',
   'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7'
 }
@@ -109,13 +109,28 @@ function findVal(arr, val) {
       { id: number, gift_id?: number, gift_num?: number, roomid: number, award_name: string, time: number, require_type: number, joinPrice: number, uid: undefined}
     } obj
  */
-function verfifyAnchordata(obj) {
+function verifyAnchordata(obj) {
   if (typeof obj !== 'object') return false;
   const propertyList = ['award_name', 'id', 'require_type', 'room_id', 'time'];
   for (const i of propertyList) {
     if (!obj.hasOwnProperty(i)) return false;
   }
   if (obj.time === 0) return false;
+  return true;
+}
+
+/**
+ * 检查提交的红包抽奖数据是否正确
+ * @param {*} obj 
+ * @returns 
+ */
+function verifyPopularityRedpocketData(obj) {
+  if (typeof obj !== 'object') return false;
+  const propertyList = ['lot_id', 'join_requirement', 'lot_status', 'user_status', 'awards', 'total_price', 'lot_config_id', 'end_time'];
+  for (const i of propertyList) {
+    if (!obj.hasOwnProperty(i)) return false;
+  }
+  if (obj.end_time <= Date.now() / 1000) return false;
   return true;
 }
 
@@ -129,10 +144,20 @@ function checkAnchordata(obj) {
 }
 
 /**
- * 分发天选数据
+ * 检查红包抽奖数据是否有价值
+ * @param {*} obj 
+ * @returns 
  */
-function handOutAnchorData() {
-  return setInterval(function () {
+function checkPopularityRedpocketData(obj) {
+  if (obj.end_time - 1 >= Date.now() / 1000) return false;
+  return true;
+}
+
+/**
+ * 分发抽奖数据
+ */
+function handOutLotteryData() {
+  function anchor() {
     // 分发的 uid 列表 （字符串）
     const sendList = Object.keys(connectingUserInfo);
     // 天选数据为空则不分发
@@ -158,7 +183,36 @@ function handOutAnchorData() {
       //console.log(chalk.success(`分发数据(id=${rawData.id})至uid: ${uid}`));
       connectingUserInfo[uid]['ws'].desend(`{"code":0,"type":"HAND_OUT_ANCHOR_DATA","data":${finalData}}`);
     });
-    console.log('本轮分发结束');
+  }
+  function popularityRedPocket() {
+    // 分发的 uid 列表 （字符串）
+    const sendList = Object.keys(connectingUserInfo);
+    // 红包数据为空则不分发
+    if (popularityRedPocketDataList.length === 0) return;
+    // 分发列表为空则不分发
+    if (sendList.length === 0) return;
+    const rawData = popularityRedPocketDataList.splice(0, 1)[0];
+    const finalData = JSON.stringify(rawData);
+    //console.log('准备分发红包数据: ', finalData);
+    //console.log('准备分发至uid列表: ', sendList);
+    sendList.forEach(function (uid) {
+      // 不给上传者分发数据
+      if (findVal(connectingUserInfo[uid]['uploadLotId'], rawData.lot_id) > -1) {
+        // console.log(`uid=${uid}的已上传天选id列表: `, connectingUserInfo[uid]['uploadId']);
+        return console.log(chalk.warning(`uid = ${uid} 是红包(lot_id = ${rawData.lot_id})的上传者，不分发`));
+      }
+      // 不分发没价值（比如快过期）的红包
+      if (!checkPopularityRedpocketData(rawData)) {
+        return console.log(chalk.warning(`红包(id = ${rawData.lot_id})无价值，不分发`));
+      }
+      //console.log(chalk.success(`分发数据(id=${rawData.id})至uid: ${uid}`));
+      connectingUserInfo[uid]['ws'].desend(`{"code":0,"type":"HAND_OUT_POPULARITY_REDPOCKET_DATA","data":${finalData}}`);
+    });
+  }
+  return setInterval(function () {
+    anchor();
+    setTimeout(popularityRedPocket, 500);
+    //console.log('本轮分发结束');
   }, 1000);
 }
 
@@ -166,8 +220,12 @@ function handOutAnchorData() {
 var connectingUserInfo = {}
 // 天选数据
 var anchorDataList = [];
+// 红包数据
+var popularityRedPocketDataList = [];
 // 天选 id 列表
 var anchorIdList = [];
+// 红包 lot_id 列表
+var popularityRedPocketIdList = [];
 // 分区信息 id - name 对应
 var area_data = {};
 // 每个分区每一页的人数 id - page - 人数
@@ -218,6 +276,8 @@ function getAreaData() {
  * 打印在线信息
  */
 function printRunningInfo() {
+  clearInterval(writeRunningInfoTimer);
+  writeRunningInfo();
   console.log('当前共有 ', chalk.success(runningInfo.onlineUsersNum), ' 名用户在线，分别是 ', runningInfo.onlineUidList);
   console.log('任务人数统计:', task_count);
   console.log('各页详细信息: ', area_page_info);
@@ -286,7 +346,8 @@ router.ws('/', function (ws, req) {
     page: undefined,
     ws: undefined,
     secret: undefined,
-    uploadId: []
+    uploadId: [],
+    uploadLotId: [],
   }
   // 连接成功
   ws.desend(`{"code":0,"type":"WS_OPEN","data":"连接成功"}`);
@@ -352,7 +413,7 @@ router.ws('/', function (ws, req) {
           // 判断是否有天选数据
           if (!json.data) return ws.close(1003, `{"code":-1,"type":"ERR_UPDATE_ANCHOR_DATA","data":"无天选数据，断开连接"}`);
           // 判断天选数据格式是否正确
-          if (!verfifyAnchordata(json.data)) return ws.close(1007, `{"code":-2,"type":"ERR_UPDATE_ANCHOR_DATA","data":"天选数据格式错误，断开连接"}`);
+          if (!verifyAnchordata(json.data)) return ws.close(1007, `{"code":-2,"type":"ERR_UPDATE_ANCHOR_DATA","data":"天选数据格式错误，断开连接"}`);
           // 成功上传回复
           ws.desend(`{"code":0,"type":"RES_UPDATE_ANCHOR_DATA","data":{"id":${json.data.id}}}`);
           console.log(chalk.success(`成功上传天选数据(uid = ${userInfo.uid}) id = `), json.data.id);
@@ -371,6 +432,34 @@ router.ws('/', function (ws, req) {
             anchorDataList.unshift(json.data);
           } else {
             console.log(chalk.warning(`当前上传者(uid = ${userInfo.uid}): 天选(id = ${json.data.id})已经被上传过了`));
+          }
+          break;
+        }
+        case "UPDATE_POPULARITY_REDPOCKET_DATA": {
+          // 判断是否已经过 apikey 校验
+          if (!connectingUserInfo.hasOwnProperty(json.uid) || connectingUserInfo[json.uid]['secret'] !== json.secret) return ws.close(1000, `{"code":5,"type":"ERR_UPDATE_POPULARITY_REDPOCKET_DATA","data":"未经过apikey校验，断开连接"}`);
+          // 判断是否有红包数据
+          if (!json.data) return ws.close(1003, `{"code":-1,"type":"ERR_UPDATE_ANCHOR_DATA","data":"无红包数据，断开连接"}`);
+          // 判断红包数据格式是否正确
+          if (!verifyPopularityRedpocketData(json.data)) return ws.close(1007, `{"code":-2,"type":"ERR_UPDATE_POPULARITY_REDPOCKET_DATA","data":"红包数据格式错误，断开连接"}`);
+          // 成功上传回复
+          ws.desend(`{"code":0,"type":"RES_UPDATE_POPULARITY_REDPOCKET_DATA","data":{"lot_id":${json.data.lot_id}}}`);
+          console.log(chalk.success(`成功上传红包数据(uid = ${userInfo.uid}) lot_id = `), json.data.lot_id);
+          // 添加到该用户上传过的 lot_id 列表中
+          if (findVal(userInfo.uploadLotId, json.data.lot_id) === -1) {
+            userInfo.uploadLotId.push(json.data.lot_id);
+            // 若id 列表长度超过 200 则删除前 100
+            if (userInfo.uploadLotId.length > 200) userInfo.uploadLotId.splice(0, 100);
+            connectingUserInfo[userInfo.uid]['uploadLotId'] = [...userInfo.uploadLotId];
+          } else {
+            console.log(chalk.warning(`用户(uid = ${userInfo.uid})已上传过该红包(lot_id = ${json.data.lot_id})`));
+          }
+          // 若没有该数据则添加至红包数据列表
+          if (findVal(popularityRedPocketIdList, json.data.lot_id) === -1) {
+            popularityRedPocketIdList.push(json.data.lot_id);
+            popularityRedPocketDataList.unshift(json.data);
+          } else {
+            console.log(chalk.warning(`当前上传者(uid = ${userInfo.uid}): 红包(lot_id = ${json.data.lot_id})已经被上传过了`));
           }
           break;
         }
@@ -432,10 +521,12 @@ router.ws('/', function (ws, req) {
               page = p;
               break;
             }
-            else if (p < AREA_PAGE_MAX_USERS) {
-              area_page_info[id][p]++;
-              page = p;
-              break;
+            else {
+              if (p < AREA_PAGE_MAX_USERS) {
+                area_page_info[id][p]++;
+                page = p;
+                break;
+              }
             }
           }
           var areaData = { id: id, name: area_data[id], page: page, size: AREA_ROOM_MAX_SIZE };
@@ -501,7 +592,7 @@ function cqWebsocket() {
     switch (json.request_type) {
       case 'friend': {
         if (json.comment !== 'BLTH') return console.log(chalk.warning('go-cqws 收到好友请求，但是验证消息不是BLTH'));
-        if (todayAddFriend > todayAddFriendMax) return console.log(chalk.wwarning('今日添加好友数量过多，不再添加'));
+        if (todayAddFriend > todayAddFriendMax) return console.log(chalk.warning('今日添加好友数量过多，不再添加'));
         axios.get(`http://localhost:5700/set_friend_add_request?flag=${flag}&access_token=${cq_access_token}`).then(response => {
           console.log('同意好友请求 response data', response.data);
         }).catch(e => console.log(chalk.error('error'), e));
@@ -531,10 +622,10 @@ function cqWebsocket() {
 getAreaData();
 
 // 分发天选数据
-handOutAnchorData();
+handOutLotteryData();
 
 // 写在线信息
-setInterval(writeRunningInfo, writeInfoInterval);
+writeRunningInfoTimer = setInterval(writeRunningInfo, writeInfoInterval);
 
 // 每天0点清空天选列表
 runExactMidnight(clearAnchorList, '清空天选 id 和 data 列表');
