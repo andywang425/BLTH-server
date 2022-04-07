@@ -149,7 +149,7 @@ function checkAnchordata(obj) {
  * @returns 
  */
 function checkPopularityRedpocketData(obj) {
-  if (obj.end_time - 1 >= Date.now() / 1000) return false;
+  if (obj.end_time - 1 <= Date.now() / 1000) return false;
   return true;
 }
 
@@ -205,7 +205,7 @@ function handOutLotteryData() {
       if (!checkPopularityRedpocketData(rawData)) {
         return console.log(chalk.warning(`红包(id = ${rawData.lot_id})无价值，不分发`));
       }
-      //console.log(chalk.success(`分发数据(id=${rawData.id})至uid: ${uid}`));
+      console.log(chalk.success(`分发红包数据(lot_id=${rawData.lot_id})至uid: ${uid}`));
       connectingUserInfo[uid]['ws'].desend(`{"code":0,"type":"HAND_OUT_POPULARITY_REDPOCKET_DATA","data":${finalData}}`);
     });
   }
