@@ -120,6 +120,17 @@ function verifyAnchordata(obj) {
 }
 
 /**
+ * 修复红包抽奖数据
+ * @param {*} obj 
+ * @returns 
+ */
+function fixPopularityRedPocket(obj) {
+  obj.roomid = Number(obj.roomid);
+  if (!obj.roomid) return false;
+  return obj;
+}
+
+/**
  * 检查提交的红包抽奖数据是否正确
  * @param {*} obj 
  * @returns 
@@ -168,19 +179,15 @@ function handOutLotteryData() {
     if (sendList.length === 0) return;
     const rawData = anchorDataList.splice(0, 1)[0];
     const finalData = JSON.stringify(rawData);
-    //console.log('准备分发天选数据: ', finalData);
-    //console.log('准备分发至uid列表: ', sendList);
     sendList.forEach(function (uid) {
       // 不给上传者分发数据
       if (findVal(connectingUserInfo[uid]['uploadId'], rawData.id) > -1) {
-        // console.log(`uid=${uid}的已上传天选id列表: `, connectingUserInfo[uid]['uploadId']);
         return console.log(chalk.warning(`uid = ${uid} 是天选(id = ${rawData.id})的上传者，不分发`));
       }
       // 不分发没价值（比如快过期）的天选
       if (!checkAnchordata(rawData)) {
         return console.log(chalk.warning(`天选(id = ${rawData.id})无价值，不分发`));
       }
-      //console.log(chalk.success(`分发数据(id=${rawData.id})至uid: ${uid}`));
       connectingUserInfo[uid]['ws'].desend(`{"code":0,"type":"HAND_OUT_ANCHOR_DATA","data":${finalData}}`);
     });
   }
@@ -193,12 +200,9 @@ function handOutLotteryData() {
     if (sendList.length === 0) return;
     const rawData = popularityRedPocketDataList.splice(0, 1)[0];
     const finalData = JSON.stringify(rawData);
-    //console.log('准备分发红包数据: ', finalData);
-    //console.log('准备分发至uid列表: ', sendList);
     sendList.forEach(function (uid) {
       // 不给上传者分发数据
       if (findVal(connectingUserInfo[uid]['uploadLotId'], rawData.lot_id) > -1) {
-        // console.log(`uid=${uid}的已上传天选id列表: `, connectingUserInfo[uid]['uploadId']);
         return console.log(chalk.warning(`uid = ${uid} 是红包(lot_id = ${rawData.lot_id})的上传者，不分发`));
       }
       // 不分发没价值（比如快过期）的红包
@@ -212,7 +216,6 @@ function handOutLotteryData() {
   return setInterval(function () {
     anchor();
     setTimeout(popularityRedPocket, 500);
-    //console.log('本轮分发结束');
   }, 1000);
 }
 
@@ -402,18 +405,20 @@ router.ws('/', function (ws, req) {
         }
         case "GET_TASK": {
           // 判断是否已经过 apikey 校验
-          if (!connectingUserInfo.hasOwnProperty(json.uid) || connectingUserInfo[json.uid]['secret'] !== json.secret) return ws.close(1000, `{"code":5,"type":"ERR_UPDATE_ANCHOR_DATA","data":"未经过apikey校验，断开连接"}`);
+          if (!isApikeyChecked(json.uid, json.secret)) return ws.close(1000, `{"code":5,"type":"ERR_UPDATE_ANCHOR_DATA","data":"未经过apikey校验，断开连接"}`);
           // 分配任务
           handOutTask(userInfo.uid);
           break;
         }
         case "UPDATE_ANCHOR_DATA": {
           // 判断是否已经过 apikey 校验
-          if (!connectingUserInfo.hasOwnProperty(json.uid) || connectingUserInfo[json.uid]['secret'] !== json.secret) return ws.close(1000, `{"code":5,"type":"ERR_UPDATE_ANCHOR_DATA","data":"未经过apikey校验，断开连接"}`);
+          if (!isApikeyChecked(json.uid, json.secret)) return ws.close(1000, `{"code":5,"type":"ERR_UPDATE_ANCHOR_DATA","data":"未经过apikey校验，断开连接"}`);
           // 判断是否有天选数据
           if (!json.data) return ws.close(1003, `{"code":-1,"type":"ERR_UPDATE_ANCHOR_DATA","data":"无天选数据，断开连接"}`);
           // 判断天选数据格式是否正确
           if (!verifyAnchordata(json.data)) return ws.close(1007, `{"code":-2,"type":"ERR_UPDATE_ANCHOR_DATA","data":"天选数据格式错误，断开连接"}`);
+          // 修复错误的红包数据
+          if (!(json.data = fixPopularityRedPocket(json.data))) return ws.close(1008, `{"code":-6,"type":"ERR_FIX_ANCHOR_DATA","data":"无法修复错误的红包数据，断开连接"}`);
           // 成功上传回复
           ws.desend(`{"code":0,"type":"RES_UPDATE_ANCHOR_DATA","data":{"id":${json.data.id}}}`);
           console.log(chalk.success(`成功上传天选数据(uid = ${userInfo.uid}) id = `), json.data.id);
@@ -437,7 +442,7 @@ router.ws('/', function (ws, req) {
         }
         case "UPDATE_POPULARITY_REDPOCKET_DATA": {
           // 判断是否已经过 apikey 校验
-          if (!connectingUserInfo.hasOwnProperty(json.uid) || connectingUserInfo[json.uid]['secret'] !== json.secret) return ws.close(1000, `{"code":5,"type":"ERR_UPDATE_POPULARITY_REDPOCKET_DATA","data":"未经过apikey校验，断开连接"}`);
+          if (!isApikeyChecked(json.uid, json.secret)) return ws.close(1000, `{"code":5,"type":"ERR_UPDATE_POPULARITY_REDPOCKET_DATA","data":"未经过apikey校验，断开连接"}`);
           // 判断是否有红包数据
           if (!json.data) return ws.close(1003, `{"code":-1,"type":"ERR_UPDATE_ANCHOR_DATA","data":"无红包数据，断开连接"}`);
           // 判断红包数据格式是否正确
@@ -493,7 +498,18 @@ router.ws('/', function (ws, req) {
     console.log(chalk.error(`webSocket出错：`, e));
   });
 
-
+  /**
+   * 判断uid是否已经过 apikey 校验
+   * @param {*} uid 
+   * @param {*} secret 
+   * @returns 
+   */
+  function isApikeyChecked(uid, secret) {
+    if (!connectingUserInfo.hasOwnProperty(uid) || connectingUserInfo[uid]['secret'] !== secret)
+      return false;
+    else
+      return true;
+  }
   /**
    * 分配任务
    */
