@@ -15,7 +15,6 @@ setConfig();
 var indexRouter = require('./routes/index');
 var apiV1Router = require('./routes/apiV1');
 var wsRouter = require('./routes/ws');
-var apikeyRouter = require('./routes/apikey');
 
 var app = express();
 var keyCheck = require('./lib/verifyApikey');
@@ -36,18 +35,12 @@ app.all('*', function (req, res, next) {
 });
 
 app.use('/', indexRouter);
-app.use('/apikey', apikeyRouter);
 
 app.use('/api/v1/anchor', function (req, res, next) {
   if (req.method === 'GET') {
     var apikey = req.query['apikey'];
     var uid = req.query['uid'];
     // 缺少 apikey 或 uid
-    /*
-    if (!apikey) {
-      console.log(chalk.error("400 chalk.error: apikey required"));
-      return res.send({ code: 400, msg: "apikey required" });
-    }*/
     if (!uid) {
       console.log(chalk.error("400 chalk.error: uid required"));
       return res.send({ code: 400, msg: "uid required" });
@@ -68,11 +61,6 @@ app.use('/api/v1/anchor', function (req, res, next) {
       req.body = paramsToObject(params);
       var apikey = req.body['apikey'];
       var uid = req.body['uid'];
-      // 缺少 apikey 或 uid
-      /*if (!apikey) {
-        console.log(chalk.error("400 chalk.error: apikey required"));
-        return res.send({ code: 400, msg: "apikey required" });
-      }*/
       if (!uid) {
         console.log(chalk.error("400 chalk.error: uid required"));
         return res.send({ code: 400, msg: "uid required" });
