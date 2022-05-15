@@ -32,14 +32,14 @@ var httpServer = http.createServer(app).listen(3000, function () {
 var noHttps = false;
 var options = {};
 try {
-  var targetExt = ['.crt', '.key'];
   fs.readdirSync('./https').forEach(function (file) {
     const ext = path.extname(file);
-    if (!targetExt.includes(ext)) return;
-    const extName = ext.slice(1);
-    options[extName] = fs.readFileSync('./https/' + file);
+    if (ext === '.crt')
+      options.cert = fs.readFileSync('./https/' + file);
+    else if (ext === '.key')
+      options.key = fs.readFileSync('./https/' + file);
   });
-  if (!options.key || !options.crt) throw 'noHttps';
+  if (!options.key || !options.cert) throw 'noHttps';
 } catch (e) {
   noHttps = true;
 }
