@@ -6,6 +6,7 @@
 
 var app = require('../app');
 var debug = require('debug')('blth-server:server');
+var path = require('path');
 var http = require('http');
 var https = require('https');
 var fs = require('fs');
@@ -16,31 +17,36 @@ var chalk = require('../lib/chalk');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
-var httpsPort = normalizePort('3001');
-app.set('port', port);
+// var port = normalizePort(process.env.PORT || '3000');
+// var httpsPort = normalizePort('3001');
+// app.set('port', port);
 
 /**
  * Create HTTP and HTTPS server.
  */
-var httpServer = http.createServer(app).listen(port, function () {
+var httpServer = http.createServer(app).listen(3000, function () {
   expressWs(app, httpServer, options);
-  console.log(chalk.success(`http / ws on ${port} port`));
+  console.log(chalk.success("http / ws on 3000 port"));
 });
-httpServer.on('error', onError);
-httpServer.on('listening', onListening);
+
 var noHttps = false;
+var options = {};
 try {
-  var certificate = fs.readFileSync('./https/1_andywang.top_bundle.crt');
-  var privateKey = fs.readFileSync('./https/2_andywang.top.key');
+  var targetExt = ['.crt', '.key'];
+  fs.readdirSync('./https').forEach(function (file) {
+    const ext = path.extname(file);
+    if (!targetExt.includes(ext)) return;
+    const extName = ext.slice(1);
+    options[extName] = fs.readFileSync('./https/' + file);
+  });
+  if (!options.key || !options.crt) throw 'noHttps';
 } catch (e) {
   noHttps = true;
 }
 if (!noHttps) {
-  var options = { key: privateKey, cert: certificate }
-  var httpsServer = https.createServer(options, app).listen(httpsPort, function () {
+  var httpsServer = https.createServer(options, app).listen(3001, function () {
     expressWs(app, httpsServer, options);
-    console.log(chalk.success(`https / wss on ${httpsPort} port`));
+    console.log(chalk.success("https / wss on 3001 port"));
   });
 } else {
   console.log(chalk.warning('no https'));
