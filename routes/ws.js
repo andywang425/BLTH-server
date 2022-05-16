@@ -137,11 +137,12 @@ function fixPopularityRedPocket(obj) {
  */
 function verifyPopularityRedpocketData(obj) {
   if (typeof obj !== 'object') return false;
-  const propertyList = ['lot_id', 'join_requirement', 'lot_status', 'user_status', 'awards', 'total_price', 'lot_config_id', 'end_time'];
+  const propertyList = ['roomid', 'lot_id', 'join_requirement', 'lot_status', 'user_status', 'awards', 'total_price', 'lot_config_id', 'end_time'];
   for (const i of propertyList) {
     if (!obj.hasOwnProperty(i)) return false;
   }
   if (obj.end_time <= Date.now() / 1000) return false;
+  fixPopularityRedPocket(obj);
   return true;
 }
 
@@ -417,8 +418,6 @@ router.ws('/', function (ws, req) {
           if (!json.data) return ws.close(1003, `{"code":-1,"type":"ERR_UPDATE_ANCHOR_DATA","data":"无天选数据，断开连接"}`);
           // 判断天选数据格式是否正确
           if (!verifyAnchordata(json.data)) return ws.close(1007, `{"code":-2,"type":"ERR_UPDATE_ANCHOR_DATA","data":"天选数据格式错误，断开连接"}`);
-          // 修复错误的红包数据
-          if (!(json.data = fixPopularityRedPocket(json.data))) return ws.close(1008, `{"code":-6,"type":"ERR_FIX_ANCHOR_DATA","data":"无法修复错误的红包数据，断开连接"}`);
           // 成功上传回复
           ws.desend(`{"code":0,"type":"RES_UPDATE_ANCHOR_DATA","data":{"id":${json.data.id}}}`);
           console.log(chalk.success(`成功上传天选数据(uid = ${userInfo.uid}) id = `), json.data.id);
