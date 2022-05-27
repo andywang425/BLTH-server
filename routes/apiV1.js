@@ -76,7 +76,7 @@ function reqCqhttp(obj) {
  * 从jsdelivr请求notice.json（自执行）
  */
 (function reqJson() {
-  axios.get("https://cdn.jsdelivr.net/gh/andywang425/BLTH@master/assets/json/notice.min.json").then(res => {
+  axios.get("https://fastly.jsdelivr.net/gh/andywang425/BLTH@master/assets/json/notice.min.json").then(res => {
       console.log(timeString(), chalk.success("notice https.get end. "));
       setTimeout(reqJson, refreshTime);
       if (versionStringCompare(res.data.version, lastVersion) === 1) {
@@ -94,7 +94,7 @@ function reqCqhttp(obj) {
  * 从jsdelivr请求 B站直播间挂机助手.js（ reqJson成功后若有新版本则执行 ）
  */
 function reqBLTH() {
-  axios.get("https://cdn.jsdelivr.net/gh/andywang425/BLTH@master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js").then(res => {
+  axios.get("https://fastly.jsdelivr.net/gh/andywang425/BLTH@master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js").then(res => {
       dbJson.BLTH = res.data;
       dbJson.notice = dbJson.temp_notice;
       console.log(timeString(), chalk.success("BLTH https.get end. "));
