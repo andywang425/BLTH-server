@@ -9,7 +9,9 @@
 
 ## 基本请求格式
 
-`GET/POST https://andywang.top:3001/api/v1<...>`
+HTTPS（推荐）: `GET/POST https://andywang.top:3001/api/v1<...>`
+
+HTTP: `GET/POST http://andywang.top:3000/api/v1<...>`
 
 后文中的请求地址只给出`<...>`的部分。
 
@@ -75,6 +77,8 @@
 
 ## 获取大概率有天选时刻的 B 站直播间号
 
+**推荐使用 WebSocket API，该 API 将来可能会被废弃**
+
 请求地址
 
 `GET /anchor/getroomlist`
@@ -102,6 +106,8 @@
 
 ## 上传有天选时刻的 B 站直播间号
 
+**推荐使用 WebSocket API，该 API 将来可能会被废弃**
+
 请求地址
 
 `POST /anchor/updateroomlist`
@@ -119,6 +125,8 @@
 ```
 
 ## QQ 私聊消息推送
+
+**由于机器人经常被封号，该 API 将来可能会被废弃**
 
 请求地址
 
@@ -151,6 +159,8 @@
 ```
 
 ## QQ 群消息推送
+
+**由于机器人经常被封号，该 API 将来可能会被废弃**
 
 请求地址
 
@@ -187,7 +197,9 @@
 
 ## webSocket 地址
 
-`wss://andywang.top:3001/ws`
+WSS（推荐）: `wss://andywang.top:3001/ws`
+
+WS: `ws://andywang.top:3000/ws`
 
 ## 通信数据格式
 
@@ -287,36 +299,19 @@
 
 ## 完成任务并上报数据
 
-按服务端的指示完成任务，以下给出完成任务的基本思路。其中提到的部分 API 需要携带 Cookie，请自行登陆 B 站打开任意一个页面抓包。
+按服务端的指示完成任务，以下给出完成任务的基本思路。
 
 ### POLLING_AREA
 
-通过`GET api.live.bilibili.com/room/v3/area/getRoomList`获取该分区的热门房间，该 API 有以下几个字段
-
-|     字段名     | 数据类型 | 默认值 |                    说明                     |
-| :------------: | :------: | :----: | :-----------------------------------------: |
-| parent_area_id |   int    |        |             你所要轮询的分区 id             |
-|    cate_id     |   int    |   0    |                                             |
-|    area_id     |   int    |   0    |                                             |
-|      page      |   int    |        | 你所要轮询的分区的页数（如 2 是轮询第二页） |
-|   page_size    |   int    |        |               每一页的房间数                |
-|   sort_type    |  string  | online |                                             |
-|    platform    |  string  |  web   |                                             |
-|  tag_version   |   int    |   1    |                                             |
-
-获得响应数据`response`后，`response.data.list`储存了我们想要的直播间号数组，接着再通过 API
-`GET api.live.bilibili.com/xlive/lottery-interface/v1/Anchor/Check?roomid=<直播间号>`
-逐个检查这些房间，如果返回的数据`response`中`data`字段不为空，则将`data`字段储存下来。
+获取指定分区一页的直播间，逐一检测是否有天选时刻或者红包抽奖。
+如果返回的数据`response`中`data`字段不为空，则将`data`字段储存下来。
 
 ### POLLING_LIVEROOMS
 
-通过`GET api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/w_live_users?size=2000`获取已关注的正在直播的 up 主。
+获取关注且已开播的直播间（如果太多可以只获取部分），逐一检测是否有天选时刻或者红包抽奖。
+如果返回的数据`response`中`data`字段不为空，则将`data`字段储存下来。
 
-获得响应数据`response`后，`response.data.items`是储存了开播主播信息的数组，其中每个 json 的 link 字段为直播间链接，稍做处理即可得到直播间号。接着再通过 API
-`GET api.live.bilibili.com/xlive/lottery-interface/v1/Anchor/Check?roomid=<直播间号>`
-逐个检查这些房间，如果返回的数据`response`中`data`字段不为空，则将`data`字段储存下来。
-
-获得`data`后请立刻上传数据，上传格式如下
+获得`data`后请立刻上传数据，天选时刻数据的上传格式如下
 
 ```json
 {
@@ -358,7 +353,56 @@
 }
 ```
 
-成功上传后服务端会回复，格式如下
+红包抽奖数据的上传格式如下
+
+```json
+{
+  "code": "UPDATE_POPULARITY_REDPOCKET_DATA",
+  "uid": 123, // 你的B站uid
+  "secret": "11a45e14",
+  "data": {
+    "data": {
+      "lot_id": 3011938,
+      "sender_uid": 35356805,
+      "sender_name": "这就是凯西",
+      "join_requirement": 1,
+      "danmu": "老板大气！点点红包抽礼物！",
+      "awards": [
+        {
+          "gift_id": 31212,
+          "num": 2,
+          "gift_name": "打call"
+        },
+        {
+          "gift_id": 31214,
+          "num": 3,
+          "gift_name": "牛哇"
+        },
+        {
+          "gift_id": 31216,
+          "num": 3,
+          "gift_name": "i了i了"
+        }
+      ],
+      "start_time": 1653664363,
+      "end_time": 1653664543,
+      "last_time": 180,
+      "remove_time": 1653664558,
+      "replace_time": 1653664553,
+      "current_time": 1653664442,
+      "lot_status": 1,
+      "user_status": 2,
+      "lot_config_id": 3,
+      "total_price": 1600,
+      "wait_num": 0,
+      "roomid": 23423267,
+      "uid": 431856380
+    }
+  }
+}
+```
+
+成功上传后服务端会回复，天选时刻的回复格式如下
 
 ```json
 {
@@ -366,6 +410,18 @@
   "type": "RES_UPDATE_ANCHOR_DATA",
   "data": {
     "id": 1390563 // 你刚刚上传的天选id
+  }
+}
+```
+
+红包抽奖的回复格式如下
+
+```json
+{
+  "code": 0,
+  "type": "RES_UPDATE_POPULARITY_REDPOCKET_DATA",
+  "data": {
+    "lot_id": 3011938 // 你刚刚上传的红包id
   }
 }
 ```
@@ -398,7 +454,7 @@
 
 ```
 
-## 接收天选数据并参加天选
+## 接收抽奖数据
 
 服务端下发的天选数据格式如下
 
@@ -435,7 +491,53 @@
 }
 ```
 
-最后要做的便是调用 B 站 API 参加天选
+红包抽奖数据格式如下
+
+```json
+{
+  "code": 0,
+  "type": "HAND_OUT_POPULARITY_REDPOCKET_DATA",
+  "data": {
+    "lot_id": 3012523,
+    "sender_uid": 1820663886,
+    "sender_name": "LS互娱",
+    "join_requirement": 1,
+    "danmu": "老板大气！点点红包抽礼物！",
+    "awards": [
+      {
+        "gift_id": 31212,
+        "num": 2,
+        "gift_name": "打call"
+      },
+      {
+        "gift_id": 31214,
+        "num": 3,
+        "gift_name": "牛哇"
+      },
+      {
+        "gift_id": 31216,
+        "num": 3,
+        "gift_name": "i了i了"
+      }
+    ],
+    "start_time": 1653665240,
+    "end_time": 1653665420,
+    "last_time": 180,
+    "remove_time": 1653665435,
+    "replace_time": 1653665430,
+    "current_time": 1653665365,
+    "lot_status": 1,
+    "user_status": 2,
+    "lot_config_id": 3,
+    "total_price": 1600,
+    "wait_num": 4,
+    "roomid": 24709555,
+    "uid": 523155004
+  }
+}
+```
+
+<!-- 最后要做的便是调用 B 站 API 参加天选
 
 `POST api.live.bilibili.com/xlive/lottery-interface/v1/Anchor/Join`
 
@@ -444,4 +546,4 @@
 |    id    |   int    |        |                天选 id                 |
 | platform |  string  |   pc   |                                        |
 | gift_id  |   int    |        | 送出礼物的 id（免费天选可忽略该参数）  |
-| gift_num |   int    |        | 送出礼物的数量（免费天选可忽略该参数） |
+| gift_num |   int    |        | 送出礼物的数量（免费天选可忽略该参数） | -->
