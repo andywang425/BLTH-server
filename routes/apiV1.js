@@ -5,6 +5,23 @@ var fs = require("fs");
 var chalk = require('../lib/chalk');
 var getFilesPath = require('../lib/getFilesPath');
 
+const req_jsdelivr_headers = {
+  'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+  'accept-encoding': 'gzip, deflate, br',
+  'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+  'cache-control': 'no-cache',
+  'dnt': '1',
+  'pragma': 'no-cache',
+  'sec-ch-ua': '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"',
+  'sec-ch-ua-mobile': '?0',
+  'sec-ch-ua-platform': '"Windows"',
+  'sec-fetch-dest': 'document',
+  'sec-fetch-mode': 'navigate',
+  'sec-fetch-site': 'none',
+  'sec-fetch-user': '?1',
+  'upgrade-insecure-requests': '1',
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/536.34 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/536.39'
+};
 const cq_access_token = process.myconfig.go_cqhttp.access_token;
 const refreshTime = 60 * 60 * 1000; // 60 min
 const anchor_max_room = 50;
@@ -76,38 +93,48 @@ function reqCqhttp(obj) {
  * 从jsdelivr请求notice.json（自执行）
  */
 (function reqJson() {
-  axios.get("https://fastly.jsdelivr.net/gh/andywang425/BLTH@master/assets/json/notice.min.json").then(res => {
-      console.log(timeString(), chalk.success("notice https.get end. "));
-      setTimeout(reqJson, refreshTime);
-      if (versionStringCompare(res.data.version, lastVersion) === 1) {
-        lastVersion = res.data.version;
-        dbJson.temp_notice = res.data;
-        reqBLTH();
-      }
-    }).catch(e => {
-      console.log(chalk.error('ERROR: '), e);
-      setTimeout(reqJson, refreshTime);
-    });
+  const reqParams = {
+    method: 'GET',
+    url: "https://fastly.jsdelivr.net/gh/andywang425/BLTH@master/assets/json/notice.min.json",
+    headers: req_jsdelivr_headers
+  }
+  return axios(reqParams).then(res => {
+    console.log(timeString(), chalk.success("notice https.get end. "));
+    setTimeout(reqJson, refreshTime);
+    if (versionStringCompare(res.data.version, lastVersion) === 1) {
+      lastVersion = res.data.version;
+      dbJson.temp_notice = res.data;
+      reqBLTH();
+    }
+  }).catch(e => {
+    console.log(chalk.error('ERROR: '), e);
+    setTimeout(reqJson, refreshTime);
+  });
 })();
 
 /**
  * 从jsdelivr请求 B站直播间挂机助手.js（ reqJson成功后若有新版本则执行 ）
  */
 function reqBLTH() {
-  axios.get("https://fastly.jsdelivr.net/gh/andywang425/BLTH@master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js").then(res => {
-      dbJson.BLTH = res.data;
-      dbJson.notice = dbJson.temp_notice;
-      console.log(timeString(), chalk.success("BLTH https.get end. "));
-      fs.writeFile(getFilesPath('BLTH.js'), String(dbJson.BLTH), function (err) {
-        if (err) console.log(chalk.error('write BLTH.js failed: '), err);
-      });
-      fs.writeFile(getFilesPath('notice.json'), JSON.stringify(dbJson.notice), function (err) {
-        if (err) console.log(chalk.error('write notice.json failed: '), err);
-      });
-    }).catch(e => {
-      console.log(chalk.error('ERROR: '), e.code);
-      setTimeout(reqBLTH, refreshTime);
+  const reqParams = {
+    method: 'GET',
+    url: "https://fastly.jsdelivr.net/gh/andywang425/BLTH@master/B%E7%AB%99%E7%9B%B4%E6%92%AD%E9%97%B4%E6%8C%82%E6%9C%BA%E5%8A%A9%E6%89%8B.user.js",
+    headers: req_jsdelivr_headers
+  }
+  return axios(reqParams).then(res => {
+    dbJson.BLTH = res.data;
+    dbJson.notice = dbJson.temp_notice;
+    console.log(timeString(), chalk.success("BLTH https.get end. "));
+    fs.writeFile(getFilesPath('BLTH.js'), String(dbJson.BLTH), function (err) {
+      if (err) console.log(chalk.error('write BLTH.js failed: '), err);
     });
+    fs.writeFile(getFilesPath('notice.json'), JSON.stringify(dbJson.notice), function (err) {
+      if (err) console.log(chalk.error('write notice.json failed: '), err);
+    });
+  }).catch(e => {
+    console.log(chalk.error('ERROR: '), e.code);
+    setTimeout(reqBLTH, refreshTime);
+  });
 };
 
 
